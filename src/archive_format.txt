@@ -1,0 +1,160 @@
+use std::{
+    collections::VecDeque,
+    fs::{self, File},
+    io::{BufReader, Write},
+    iter::Peekable,
+    path::{Path, PathBuf},
+};
+
+use anyhow::{anyhow, bail, Context};
+use bzip2::bufread::BzDecoder;
+use chrono::{Datelike, Timelike, Utc};
+use rand::{rngs::StdRng, RngCore, SeedableRng};
+
+use crate::{
+    checksum,
+    dirwalk::{DirWalk, DirWalkParameters},
+    meta_format::{self},
+    misc_helper::{self},
+};
+
+
+
+
+pub fn verify_content(path: &Path, expected: checksum::Output) -> anyhow::Result<()> {
+    let reader = BufReader::new(File::open(path)?);
+    let reader = BzDecoder::new(reader);
+
+    let checksum_read = checksum::calculate(reader)?;
+
+    if checksum_read.data == expected.data {
+        return Ok(());
+    } else {
+        return Err(anyhow!(
+            "content integrity check failed; path={}",
+            path.to_string_lossy()
+        ));
+    }
+}
+
+pub fn verify_content_available(session: BackupSession, channel: &str, channel_rev: &str) -> anyhow::Result<()> {
+    let mut is_ok = true;
+    
+    // for file_entry in content_paths(&session.archive_dir)? {
+    //     let partial_error = |detail: &str| {
+    //         eprintln!("verify channel revision failed. {}", detail);
+    //         return false;
+    //     };
+
+    //     if !misc_helper::is_file(&file_entry.content_path) {
+    //         is_ok = partial_error(&format!("content file missing -> {}",  &file_entry.content_path.to_string_lossy()));
+    //         continue;
+    //     }
+    // }
+
+    // return match is_ok {
+    //     true => Ok(()),
+    //     false => Err(anyhow!("verfiy revision content failed")),
+    // };
+
+    return Ok(());
+}
+
+pub fn verify_channel_rev(path: &Path) -> anyhow::Result<()> {
+    let file = File::open(path)?;
+    return meta_format::verify(file);
+}
+
+
+
+
+// impl BackupSession {
+//     pub fn verify_filelist_all(&self) -> anyhow::Result<()> {
+//         let mut is_ok = true;
+        
+//         for channel in self.channel_names()? {
+//             for rev in channel_rev_paths(&self.archive_dir, &channel)? {
+
+//             }
+//         }
+
+//         return match is_ok {
+//             true => Ok(()),
+//             false => Err(anyhow!("verify filest failed")),
+//         };
+//     }
+
+//     pub fn verify_revs_all(&self) -> anyhow::Result<()> {
+//         let mut is_ok = true;
+
+//         for channel in self.channel_names()? {
+//             for rev in channel_rev_paths(&self.archive_dir, &channel)? {
+//                 match verify_channel_rev(&rev) {
+//                     Ok(_) => {}
+//                     Err(err) => {
+//                         misc_helper::print_error_chain(
+//                             &err.context(format!(
+//                                 "verify channel entry {}",
+//                                 rev.to_string_lossy()
+//                             )),
+//                         );
+//                         is_ok = false;
+//                     }
+//                 }
+//             }
+//         }
+
+//         return match is_ok {
+//             true => Ok(()),
+//             false => Err(anyhow!("verify channel failed"))
+//         };
+
+//     }
+
+//     pub fn verify_content_all(&self) -> anyhow::Result<()> {
+//         let mut is_ok = true;
+
+//         for content_entry in content_paths(&self.archive_dir)? {
+//             fn do_content_verify(path: &Path) -> anyhow::Result<()> {
+//                 let expected = path.iter().last().unwrap().to_string_lossy().to_string();
+//                 let expected = checksum::Output::from_hex(&expected)?;
+//                 return verify_content(path, expected);
+//             }
+
+//             match do_content_verify(&content_entry) {
+//                 Ok(_) => {}
+//                 Err(err) => {
+//                     misc_helper::print_error_chain(&err.context(format!(
+//                         "verify content {}",
+//                         content_entry.to_string_lossy()
+//                     )));
+//                     is_ok = false;
+//                 }
+//             }
+//         }
+
+//         return match is_ok {
+//             true => Ok(()),
+//             false => Err(anyhow!("verify content failed"))
+//         }
+//     }
+
+//     pub fn verify_all(&self) -> anyhow::Result<()> {
+//         let mut is_ok = true;
+
+//         if self.verify_revs_all().is_err() {
+//             is_ok = false;
+//         }
+
+//         if self.verify_content_all().is_err() {
+//             is_ok = false;
+//         }
+
+//         return match is_ok {
+//             true => Ok(()),
+//             false => Err(anyhow!("verify failed")),
+//         };
+//     }
+// }
+
+
